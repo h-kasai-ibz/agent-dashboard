@@ -9,7 +9,11 @@ from typing import Any
 from cost import calculate_cost
 
 
-CLAUDE_PROJECTS_DIR = Path.home() / ".claude" / "projects"
+CLAUDE_INSTANCES = [
+    ("kasai",     Path("/home/kasai/.claude/projects"),     "claude-code-kasai",     "Claude Code (kasai)"),
+    ("clawadmin", Path("/home/clawadmin/.claude/projects"), "claude-code-clawadmin", "Claude Code (clawadmin)"),
+    ("clawuser",  Path("/home/clawuser/.claude/projects"),  "claude-code-clawuser",  "Claude Code (clawuser)"),
+]
 
 
 def _extract_text_content(content: Any) -> str:
@@ -28,7 +32,7 @@ def _extract_text_content(content: Any) -> str:
     return ""
 
 
-def parse_session_file(jsonl_path: Path, project: str) -> dict | None:
+def parse_session_file(jsonl_path: Path, project: str, agent_id: str = "claude-code-kasai") -> dict | None:
     """Parse a single JSONL session file and return a session dict."""
     session_id = jsonl_path.stem
 
@@ -94,7 +98,7 @@ def parse_session_file(jsonl_path: Path, project: str) -> dict | None:
 
     return {
         "id": session_id,
-        "agent": "claude-code",
+        "agent": agent_id,
         "project": project,
         "started_at": started_at,
         "last_active": last_active,
@@ -110,20 +114,20 @@ def parse_session_file(jsonl_path: Path, project: str) -> dict | None:
 
 
 def get_all_sessions() -> list[dict]:
-    """Walk ~/.claude/projects/ and return all parsed sessions."""
+    """Walk each user's ~/.claude/projects/ and return all parsed sessions."""
     sessions: list[dict] = []
 
-    if not CLAUDE_PROJECTS_DIR.exists():
-        return sessions
-
-    for project_dir in CLAUDE_PROJECTS_DIR.iterdir():
-        if not project_dir.is_dir():
+    for _user, projects_dir, agent_id, _name in CLAUDE_INSTANCES:
+        if not projects_dir.exists():
             continue
-        project_name = project_dir.name
-        for jsonl_file in project_dir.glob("*.jsonl"):
-            session = parse_session_file(jsonl_file, project_name)
-            if session is not None:
-                sessions.append(session)
+        for project_dir in projects_dir.iterdir():
+            if not project_dir.is_dir():
+                continue
+            project_name = project_dir.name
+            for jsonl_file in project_dir.glob("*.jsonl"):
+                session = parse_session_file(jsonl_file, project_name, agent_id)
+                if session is not None:
+                    sessions.append(session)
 
     sessions.sort(key=lambda s: s.get("last_active") or "", reverse=True)
     return sessions

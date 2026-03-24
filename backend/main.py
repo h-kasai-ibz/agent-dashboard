@@ -29,11 +29,23 @@ app.add_middleware(
 )
 
 AGENT_REGISTRY: dict[str, dict] = {
-    "claude-code": {
-        "id": "claude-code",
-        "name": "Claude Code",
+    "claude-code-kasai": {
+        "id": "claude-code-kasai",
+        "name": "Claude Code (kasai)",
         "model": "claude-sonnet-4-6",
         "color": "orange",
+    },
+    "claude-code-clawadmin": {
+        "id": "claude-code-clawadmin",
+        "name": "Claude Code (clawadmin)",
+        "model": "claude-sonnet-4-6",
+        "color": "amber",
+    },
+    "claude-code-clawuser": {
+        "id": "claude-code-clawuser",
+        "name": "Claude Code (clawuser)",
+        "model": "claude-sonnet-4-6",
+        "color": "yellow",
     },
     "codex-kasai": {
         "id": "codex-kasai",
