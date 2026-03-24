@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Node / Vite
+node_modules/
+dist/
+.env
+.env.local
+
+# Logs
+*.log
+nohup.out
+
+# OS
+.DS_Store
+Thumbs.db
