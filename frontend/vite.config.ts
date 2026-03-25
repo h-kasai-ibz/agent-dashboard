@@ -5,6 +5,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    host: true,
+    allowedHosts: ["q4os", "q4os.leopard-canopus.ts.net", "localhost"],
     proxy: {
       "/api": {
         target: "http://localhost:8001",
