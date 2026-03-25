@@ -65,6 +65,12 @@ AGENT_REGISTRY: dict[str, dict] = {
         "model": "gemini-2.5-flash",
         "color": "blue",
     },
+    "kimi": {
+        "id": "kimi",
+        "name": "Kimi (Moonshot AI)",
+        "model": "kimi-k2-instruct",
+        "color": "cyan",
+    },
     "goose": {
         "id": "goose",
         "name": "Goose",
