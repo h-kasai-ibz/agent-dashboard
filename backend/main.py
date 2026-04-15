@@ -14,7 +14,7 @@ from fastapi.responses import StreamingResponse
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from parsers import claude_code, goose  # noqa: E402
+from parsers import claude_code, goose, grok  # noqa: E402
 from parsers import codex, gemini_cli   # noqa: E402
 from process_monitor import get_running_agents  # noqa: E402
 
@@ -28,7 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-AGENT_REGISTRY: dict[str, dict] = {
+AGENTS: dict[str, dict] = {
     "claude-code-kasai": {
         "id": "claude-code-kasai",
         "name": "Claude Code (kasai)",
@@ -71,6 +71,12 @@ AGENT_REGISTRY: dict[str, dict] = {
         "model": "kimi-k2-instruct",
         "color": "cyan",
     },
+    "grok": {
+        "id": "grok",
+        "name": "Grok (xAI)",
+        "model": "grok-3-mini",
+        "color": "orange",
+    },
     "goose": {
         "id": "goose",
         "name": "Goose",
@@ -78,6 +84,8 @@ AGENT_REGISTRY: dict[str, dict] = {
         "color": "purple",
     },
 }
+
+AGENT_REGISTRY = AGENTS
 
 
 def _is_recently_active(last_active_str: str | None, minutes: int = 5) -> bool:
@@ -95,6 +103,7 @@ def _get_all_sessions() -> list[dict]:
     sessions.extend(claude_code.get_all_sessions())
     sessions.extend(codex.get_all_sessions())
     sessions.extend(gemini_cli.get_all_sessions())
+    sessions.extend(grok.get_all_sessions())
     sessions.extend(goose.get_all_sessions())
     sessions.sort(key=lambda s: s.get("last_active") or "", reverse=True)
     return sessions
