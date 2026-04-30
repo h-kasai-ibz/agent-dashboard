@@ -78,6 +78,55 @@ export interface LiveEvent {
   pid?: number;
 }
 
+export interface CronJob {
+  id: string;
+  label: string;
+  command: string;
+  schedule: string;
+  schedule_human: string;
+  agent: "claude" | "codex" | "goose" | "gemini";
+  last_run: string | null;
+}
+
+export interface Proposal {
+  id: string;
+  title: string;
+  reason: string;
+  status: "提案中" | "採用" | "却下";
+  category: "短期" | "中期" | "長期";
+  created: string;
+  source?: string | null;
+}
+
+export interface QueueTask {
+  id: string;
+  title: string;
+  status: "pending" | "in-progress" | "blocked" | "done";
+  priority: "P1" | "P2" | "P3";
+  deadline: string | null;
+  created: string;
+  agent: "claude" | "codex" | "goose" | "gemini" | "any";
+  background: string | null;
+}
+
+export interface QueueTaskDetail extends QueueTask {
+  file_path: string | null;
+  description: string | null;
+  expected_deliverables: string | null;
+  success_criteria: string | null;
+  execution_plan: string | null;
+  progress_log: string | null;
+  deliverables: string | null;
+  next_actions: string | null;
+  retrospective: string | null;
+  blockers: string | null;
+}
+
+export interface QueueTaskUpdate {
+  priority?: QueueTask["priority"];
+  agent?: QueueTask["agent"];
+}
+
 export async function fetchAgents(): Promise<Agent[]> {
   const res = await fetch("/api/agents");
   if (!res.ok) throw new Error(`Failed to fetch agents: ${res.status}`);
@@ -93,6 +142,53 @@ export async function fetchSessions(): Promise<Session[]> {
 export async function fetchStats(): Promise<Stats> {
   const res = await fetch("/api/stats");
   if (!res.ok) throw new Error(`Failed to fetch stats: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchCrons(): Promise<CronJob[]> {
+  const res = await fetch("/api/crons");
+  if (!res.ok) throw new Error(`Failed to fetch crons: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchProposals(): Promise<Proposal[]> {
+  const res = await fetch("/api/proposals");
+  if (!res.ok) throw new Error(`Failed to fetch proposals: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchQueue(): Promise<QueueTask[]> {
+  const res = await fetch("/api/tasks/queue");
+  if (!res.ok) throw new Error(`Failed to fetch queue: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchTaskDetail(id: string): Promise<QueueTaskDetail | null> {
+  const res = await fetch(`/api/tasks/${id}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Failed to fetch task detail: ${res.status}`);
+  return res.json();
+}
+
+export async function updateProposal(id: string, data: any): Promise<Proposal> {
+  return {
+    id,
+    title: data?.title ?? "",
+    reason: data?.reason ?? "",
+    status: data?.status ?? "提案中",
+    category: data?.category ?? "短期",
+    created: "",
+    source: null,
+  };
+}
+
+export async function updateTask(id: string, data: any): Promise<QueueTask> {
+  const res = await fetch(`/api/tasks/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed to update task: ${res.status}`);
   return res.json();
 }
 

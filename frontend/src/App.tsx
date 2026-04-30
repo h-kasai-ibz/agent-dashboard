@@ -13,8 +13,9 @@ import AgentCard from "./components/AgentCard";
 import LiveRunPanel from "./components/LiveRunPanel";
 import SessionList from "./components/SessionList";
 import StatsBar from "./components/StatsBar";
+import BacklogPage from "./pages/BacklogPage";
 
-type ViewMode = "overview" | "live";
+type ViewMode = "overview" | "backlog" | "live";
 
 export default function App() {
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -24,7 +25,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [refreshing, setRefreshing] = useState(false);
-  const [view, setView] = useState<ViewMode>("live");
+  const [view, setView] = useState<ViewMode>("overview");
 
   const loadData = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -96,18 +97,6 @@ export default function App() {
         <div className="mb-6 flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => setView("live")}
-            className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
-              view === "live"
-                ? "border-cyan-400/60 bg-cyan-500/15 text-cyan-200"
-                : "border-gray-700 bg-gray-800/80 text-gray-400 hover:text-gray-200"
-            }`}
-          >
-            <Radio size={15} />
-            Live Run
-          </button>
-          <button
-            type="button"
             onClick={() => setView("overview")}
             className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
               view === "overview"
@@ -117,6 +106,30 @@ export default function App() {
           >
             <Eye size={15} />
             Overview
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("backlog")}
+            className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
+              view === "backlog"
+                ? "border-amber-400/60 bg-amber-500/15 text-amber-200"
+                : "border-gray-700 bg-gray-800/80 text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            <Activity size={15} />
+            BackLog
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("live")}
+            className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
+              view === "live"
+                ? "border-cyan-400/60 bg-cyan-500/15 text-cyan-200"
+                : "border-gray-700 bg-gray-800/80 text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            <Radio size={15} />
+            Live Run
           </button>
         </div>
 
@@ -128,6 +141,8 @@ export default function App() {
 
         {view === "live" ? (
           <LiveRunPanel />
+        ) : view === "backlog" ? (
+          <BacklogPage refreshToken={lastRefresh.getTime()} />
         ) : (
           <>
             <StatsBar stats={stats} loading={loading} />
