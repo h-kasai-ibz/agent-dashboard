@@ -67,7 +67,7 @@ trap cleanup EXIT INT TERM
 # ── Start backend ─────────────────────────────────────────────────────────────
 echo -e "${GREEN}Starting backend  → http://127.0.0.1:8001${NC}"
 cd "$BACKEND_DIR"
-"$UVICORN" main:app --host 127.0.0.1 --port 8001 --reload &
+"$UVICORN" main:app --host 0.0.0.0 --port 8001 --reload &
 BACKEND_PID=$!
 cd "$SCRIPT_DIR"
 
