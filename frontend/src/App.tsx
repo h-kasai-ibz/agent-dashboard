@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Activity, RefreshCw } from "lucide-react";
+import { Activity, Eye, RefreshCw, Radio } from "lucide-react";
 import {
   fetchAgents,
   fetchSessions,
@@ -10,8 +10,11 @@ import {
   type Stats,
 } from "./api";
 import AgentCard from "./components/AgentCard";
+import LiveRunPanel from "./components/LiveRunPanel";
 import SessionList from "./components/SessionList";
 import StatsBar from "./components/StatsBar";
+
+type ViewMode = "overview" | "live";
 
 export default function App() {
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -21,6 +24,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [refreshing, setRefreshing] = useState(false);
+  const [view, setView] = useState<ViewMode>("live");
 
   const loadData = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -60,8 +64,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100">
-      {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10">
+      <header className="sticky top-0 z-10 border-b border-gray-800 bg-gray-900/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-blue-500/20 p-2 rounded-lg">
@@ -69,7 +72,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-white">Agent Dashboard</h1>
-              <p className="text-xs text-gray-500">AI activity monitor</p>
+              <p className="text-xs text-gray-500">History view + live CLI event stream</p>
             </div>
           </div>
 
@@ -89,47 +92,74 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main content */}
       <main className="max-w-7xl mx-auto px-6 py-6">
-        {/* Error banner */}
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setView("live")}
+            className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
+              view === "live"
+                ? "border-cyan-400/60 bg-cyan-500/15 text-cyan-200"
+                : "border-gray-700 bg-gray-800/80 text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            <Radio size={15} />
+            Live Run
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("overview")}
+            className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${
+              view === "overview"
+                ? "border-blue-400/60 bg-blue-500/15 text-blue-200"
+                : "border-gray-700 bg-gray-800/80 text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            <Eye size={15} />
+            Overview
+          </button>
+        </div>
+
         {error && (
           <div className="mb-4 bg-red-900/30 border border-red-700/50 text-red-300 px-4 py-3 rounded-lg text-sm">
             {error}
           </div>
         )}
 
-        {/* Stats bar */}
-        <StatsBar stats={stats} loading={loading} />
+        {view === "live" ? (
+          <LiveRunPanel />
+        ) : (
+          <>
+            <StatsBar stats={stats} loading={loading} />
 
-        {/* Two-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Agent cards */}
-          <div className="lg:col-span-1 space-y-4">
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-              Agents
-            </h2>
-            {loading ? (
-              <>
-                <div className="bg-gray-800 rounded-xl h-44 animate-pulse" />
-                <div className="bg-gray-800 rounded-xl h-44 animate-pulse" />
-              </>
-            ) : agents.length === 0 ? (
-              <div className="bg-gray-800 rounded-xl p-6 text-center text-gray-500 text-sm">
-                No agents found.
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1 space-y-4">
+                <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                  Agents
+                </h2>
+                {loading ? (
+                  <>
+                    <div className="bg-gray-800 rounded-xl h-44 animate-pulse" />
+                    <div className="bg-gray-800 rounded-xl h-44 animate-pulse" />
+                  </>
+                ) : agents.length === 0 ? (
+                  <div className="bg-gray-800 rounded-xl p-6 text-center text-gray-500 text-sm">
+                    No agents found.
+                  </div>
+                ) : (
+                  agents.map((agent) => <AgentCard key={agent.id} agent={agent} />)
+                )}
               </div>
-            ) : (
-              agents.map((agent) => <AgentCard key={agent.id} agent={agent} />)
-            )}
-          </div>
 
-          {/* Right: Session list */}
-          <div className="lg:col-span-2">
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
-              Recent Sessions
-            </h2>
-            <SessionList sessions={sessions} loading={loading} />
-          </div>
-        </div>
+              <div className="lg:col-span-2">
+                <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                  Recent Sessions
+                </h2>
+                <SessionList sessions={sessions} loading={loading} />
+              </div>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

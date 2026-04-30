@@ -46,6 +46,38 @@ export interface Stats {
   by_agent: AgentStats[];
 }
 
+export interface LiveRunSummary {
+  id: string;
+  label: string;
+  command: string[];
+  cwd: string;
+  status: "queued" | "starting" | "running" | "completed" | "failed";
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  return_code: number | null;
+  pid: number | null;
+  error: string | null;
+  event_count: number;
+}
+
+export interface LiveEvent {
+  seq?: number;
+  run_id?: string;
+  timestamp?: string;
+  kind: string;
+  stream?: "stdout" | "stderr";
+  text?: string;
+  json?: unknown;
+  format?: "json" | "text";
+  status?: string;
+  return_code?: number;
+  message?: string;
+  command?: string[];
+  cwd?: string;
+  pid?: number;
+}
+
 export async function fetchAgents(): Promise<Agent[]> {
   const res = await fetch("/api/agents");
   if (!res.ok) throw new Error(`Failed to fetch agents: ${res.status}`);
@@ -62,6 +94,43 @@ export async function fetchStats(): Promise<Stats> {
   const res = await fetch("/api/stats");
   if (!res.ok) throw new Error(`Failed to fetch stats: ${res.status}`);
   return res.json();
+}
+
+export async function listLiveRuns(): Promise<LiveRunSummary[]> {
+  const res = await fetch("/api/live/runs");
+  if (!res.ok) throw new Error(`Failed to fetch live runs: ${res.status}`);
+  const data = await res.json();
+  return data.runs;
+}
+
+export async function createLiveRun(payload: {
+  command: string;
+  cwd?: string;
+  label?: string;
+}): Promise<LiveRunSummary> {
+  const res = await fetch("/api/live/runs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Failed to create live run: ${res.status}`);
+  const data = await res.json();
+  return data.run;
+}
+
+export async function fetchLiveRun(runId: string): Promise<{ run: LiveRunSummary; events: LiveEvent[] }> {
+  const res = await fetch(`/api/live/runs/${runId}`);
+  if (!res.ok) throw new Error(`Failed to fetch live run: ${res.status}`);
+  return res.json();
+}
+
+export async function stopLiveRun(runId: string): Promise<LiveRunSummary> {
+  const res = await fetch(`/api/live/runs/${runId}/stop`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Failed to stop live run: ${res.status}`);
+  const data = await res.json();
+  return data.run;
 }
 
 /**
@@ -81,5 +150,31 @@ export function subscribeToEvents(onUpdate: () => void): () => void {
 
   return () => {
     es.close();
+  };
+}
+
+export function connectLiveRun(
+  runId: string,
+  handlers: {
+    onMessage: (event: LiveEvent) => void;
+    onClose?: () => void;
+    onError?: () => void;
+  },
+): () => void {
+  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const ws = new WebSocket(`${protocol}://${window.location.host}/ws/live/runs/${runId}`);
+
+  ws.onmessage = (message) => {
+    handlers.onMessage(JSON.parse(message.data) as LiveEvent);
+  };
+  ws.onclose = () => {
+    handlers.onClose?.();
+  };
+  ws.onerror = () => {
+    handlers.onError?.();
+  };
+
+  return () => {
+    ws.close();
   };
 }

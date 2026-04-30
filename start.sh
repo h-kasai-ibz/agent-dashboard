@@ -65,9 +65,9 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # ── Start backend ─────────────────────────────────────────────────────────────
-echo -e "${GREEN}Starting backend  → http://localhost:8000${NC}"
+echo -e "${GREEN}Starting backend  → http://127.0.0.1:8001${NC}"
 cd "$BACKEND_DIR"
-"$UVICORN" main:app --host 0.0.0.0 --port 8000 --reload &
+"$UVICORN" main:app --host 127.0.0.1 --port 8001 --reload &
 BACKEND_PID=$!
 cd "$SCRIPT_DIR"
 
@@ -75,7 +75,7 @@ cd "$SCRIPT_DIR"
 sleep 1
 
 # ── Start frontend ────────────────────────────────────────────────────────────
-echo -e "${GREEN}Starting frontend → http://localhost:5173${NC}"
+echo -e "${GREEN}Starting frontend → http://127.0.0.1:5170${NC}"
 cd "$FRONTEND_DIR"
 npm run dev &
 FRONTEND_PID=$!
@@ -83,8 +83,8 @@ cd "$SCRIPT_DIR"
 
 echo ""
 echo -e "${BLUE}Both services running.${NC}"
-echo -e "  Backend:  ${GREEN}http://localhost:8000${NC}"
-echo -e "  Frontend: ${GREEN}http://localhost:5173${NC}"
+echo -e "  Backend:  ${GREEN}http://127.0.0.1:8001${NC}"
+echo -e "  Frontend: ${GREEN}http://127.0.0.1:5170${NC}"
 echo -e "${YELLOW}Press Ctrl+C to stop.${NC}"
 
 wait "$BACKEND_PID" "$FRONTEND_PID"

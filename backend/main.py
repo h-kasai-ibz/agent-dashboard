@@ -2,18 +2,19 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import AsyncGenerator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+from live_runner import LiveRunManager  # noqa: E402
 from parsers import claude_code, goose, grok  # noqa: E402
 from parsers import codex, gemini_cli   # noqa: E402
 from process_monitor import get_running_agents  # noqa: E402
@@ -86,6 +87,13 @@ AGENTS: dict[str, dict] = {
 }
 
 AGENT_REGISTRY = AGENTS
+LIVE_RUN_MANAGER = LiveRunManager()
+
+
+class LiveRunCreateRequest(BaseModel):
+    command: str
+    cwd: str | None = None
+    label: str | None = None
 
 
 def _is_recently_active(last_active_str: str | None, minutes: int = 5) -> bool:
@@ -200,6 +208,58 @@ def get_processes() -> dict:
     """Return currently running agent processes."""
     running = get_running_agents()
     return {"running": list(running)}
+
+
+@app.get("/api/live/runs")
+async def list_live_runs() -> dict:
+    return {"runs": await LIVE_RUN_MANAGER.list_runs()}
+
+
+@app.post("/api/live/runs")
+async def create_live_run(payload: LiveRunCreateRequest) -> dict:
+    try:
+        run = await LIVE_RUN_MANAGER.create_run(
+            command_text=payload.command,
+            cwd=payload.cwd,
+            label=payload.label,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"run": run.summary()}
+
+
+@app.get("/api/live/runs/{run_id}")
+async def get_live_run(run_id: str) -> dict:
+    payload = await LIVE_RUN_MANAGER.get_run_payload(run_id)
+    if payload is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return payload
+
+
+@app.post("/api/live/runs/{run_id}/stop")
+async def stop_live_run(run_id: str) -> dict:
+    run = await LIVE_RUN_MANAGER.stop_run(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return {"run": run.summary()}
+
+
+@app.websocket("/ws/live/runs/{run_id}")
+async def live_run_websocket(websocket: WebSocket, run_id: str) -> None:
+    await websocket.accept()
+    run, queue = await LIVE_RUN_MANAGER.subscribe(run_id)
+    if run is None:
+        await websocket.send_json({"kind": "error", "message": "Run not found"})
+        await websocket.close(code=4404)
+        return
+
+    await websocket.send_json({"kind": "snapshot", "run": run.summary()})
+    try:
+        while True:
+            event = await queue.get()
+            await websocket.send_json(event)
+    except WebSocketDisconnect:
+        await LIVE_RUN_MANAGER.unsubscribe(run_id, queue)
 
 
 async def _event_generator() -> AsyncGenerator[str, None]:

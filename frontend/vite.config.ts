@@ -4,13 +4,17 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
-    host: true,
-    allowedHosts: ["q4os", "q4os.leopard-canopus.ts.net", "localhost"],
+    port: 5170,
+    host: "127.0.0.1",
+    allowedHosts: ["127.0.0.1", "localhost", "q4os", "q4os.leopard-canopus.ts.net"],
     proxy: {
       "/api": {
         target: "http://localhost:8001",
         changeOrigin: true,
+      },
+      "/ws": {
+        target: "ws://localhost:8001",
+        ws: true,
       },
     },
   },
